@@ -1,0 +1,66 @@
+run:
+    modules-download-mode: readonly
+
+linters:
+    enable-all: true
+    disable:
+        - depguard
+        - dogsled
+        - funlen
+        - godot
+        - godox
+        - gofmt
+        - gofumpt
+        - golint
+        - gomnd
+        - interfacer
+
+linters-settings:
+    gocritic:
+        disabled-checks:
+            - captLocal
+
+    goimports:
+        local-prefixes: gitlab.cdn77.eu
+
+    govet:
+        enable-all: true
+        disable:
+            - shadow
+
+    lll:
+        tab-width: 4
+
+    wsl:
+        allow-cuddle-declarations: true
+        enforce-err-cuddling: true
+
+issues:
+    max-issues-per-linter: 0
+    max-same-issues: 0
+    exclude-rules:
+        # ignore unchecked errors and missing Close() calls in tests
+        -   path: _test\.go
+            linters: [errcheck, bodyclose]
+        # ignore recommendations for variable names, e.g id => ID, uri => URI, ...
+        -   text: "^ST1003:"
+            linters: [stylecheck]
+        # ignore line length limit in tests
+        -   path: _test\.go
+            text: line is \d+ characters
+            linters: [lll]
+        # ignore defer cuddle in tests
+        -   path: _test\.go
+            text: only one cuddle assignment allowed before defer statement
+            linters: [wsl]
+        # ignore expressions after assignment in tests
+        -   path: _test\.go
+            text: only cuddled expressions if assigning variable or using from line above
+            linters: [wsl]
+        # ignore code duplication in tests
+        -   path: _test\.go
+            linters: [dupl]
+        # ignore scopelint in tests for "test" variable (probably bug, maybe remove this later)
+        -   path: _test\.go
+            text: Using the variable on range scope `test` in function literal
+            linters: [scopelint]
