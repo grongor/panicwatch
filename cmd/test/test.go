@@ -1,8 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path"
+	"runtime"
 	"time"
 
 	"github.com/grongor/panicwatch"
@@ -10,16 +14,26 @@ import (
 
 func main() {
 	args := os.Args[1:]
-	if len(args) == 0 {
-		stderr("no command")
+	if len(args) != 2 {
+		stderr("missing command or results file")
 		os.Exit(3)
 	}
 
 	panicHandler := func(p panicwatch.Panic) {
-		stdout("caught panic:", p.Message)
+		result, err := json.Marshal(p)
+		if err != nil {
+			stderr("failed to marshal Panic: " + err.Error())
+			os.Exit(3)
+		}
+
+		err = ioutil.WriteFile(args[1], result, 0)
+		if err != nil {
+			stderr("failed to write results: " + err.Error())
+			os.Exit(3)
+		}
 	}
 
-	err := panicwatch.Start(panicHandler)
+	err := panicwatch.Start(panicwatch.Config{OnPanic: panicHandler})
 	if err != nil {
 		stderr("unexpected error:", err.Error())
 		os.Exit(3)
@@ -43,16 +57,35 @@ func main() {
 	case "panic-sync-split":
 		_, _ = fmt.Fprint(os.Stderr, "pani")
 		_ = os.Stderr.Sync()
+
 		time.Sleep(time.Millisecond * 500)
 		stderr("c: i'm split in two lol")
+		stderr("\ngoroutine 1 [running]:")
+
+		_ = os.Stderr.Sync()
+
+		time.Sleep(time.Millisecond * 500)
+
+		stderr("main.main()")
+
+		_, filename, _, _ := runtime.Caller(0)
+		projectDir := path.Dir(path.Dir(path.Dir(filename)))
+
+		stderr(fmt.Sprintf("\t\t%s/cmd/test/test.go:69 +0x12ab", projectDir))
 		os.Exit(2)
 	case "panic-with-garbage":
 		stderr("panic: blah blah\n")
-		for i := 0; i < 500; i++ {
+
+		for i := 0; i < 1500; i++ {
+			stdout("some garbage here...")
 			stderr("some garbage here...")
 		}
 
 		panic("and BAM!")
+	case "only-last-panic-string-is-detected":
+		stderr("panic: this is fake\n")
+
+		panic("and this is not")
 	default:
 		stderr("unknown command:", cmd)
 		os.Exit(3)

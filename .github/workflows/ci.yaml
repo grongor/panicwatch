@@ -1,0 +1,60 @@
+name: CI
+
+on:
+    push:
+    pull_request:
+
+jobs:
+    test:
+        name: Test
+        runs-on: ${{ matrix.os }}
+        strategy:
+            matrix:
+                os: [macos-latest, ubuntu-latest, windows-latest]
+        steps:
+            -   uses: actions/checkout@v2
+            -   uses: actions/setup-go@v2
+            -   name: Run tests
+                run: make test
+
+    test-arm:
+        name: Test ARM
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                arch: [armv6, armv7, aarch64]
+        steps:
+            -   uses: actions/checkout@v2
+            -   uses: actions/setup-go@v2
+            -   uses: uraimo/run-on-arch-action@v1.1.0
+                id: runcmd
+                with:
+                    architecture: ${{ matrix.arch }}
+                    distribution: buster
+                    run: |
+                        set -eux
+                        apt update
+                        apt install -y build-essential wget
+
+                        if [[ ${{ matrix.arch }} == arm* ]]; then
+                            pkg=go1.15.linux-armv6l.tar.gz
+                        else
+                            pkg=go1.15.linux-arm64.tar.gz
+                        fi
+
+                        wget https://golang.org/dl/$pkg
+                        tar -C /usr/local -xzf $pkg
+                        export PATH=$PATH:/usr/local/go/bin
+                        make test
+
+    lint:
+        name: Lint
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@v2
+            -   name: Install dependencies
+                run: sudo apt update && sudo apt install libsnmp-dev
+            -   name: golangci-lint
+                uses: golangci/golangci-lint-action@v1
+                with:
+                    version: v1.30

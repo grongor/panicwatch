@@ -1,0 +1,27 @@
+archives:
+    - format: binary
+
+builds:
+    -   main: ./cmd/test
+        binary: test
+        goos:
+            - darwin
+            - freebsd
+            - linux
+            - netbsd
+            - openbsd
+            - windows
+        goarch:
+            - 386
+            - amd64
+            - arm
+            - arm64
+
+checksum:
+    name_template: 'checksums.txt'
+
+changelog:
+
+release:
+    ids:
+        - none

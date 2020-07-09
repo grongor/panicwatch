@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"regexp"
 	"syscall"
-	"time"
 
 	"github.com/glycerine/rbuf"
 )
@@ -19,10 +18,10 @@ type Panic struct {
 	Stack   string
 }
 
-type config struct {
-	FullPaths     bool
-	OnError       func(error)
-	OnWatcherDied func(error) // watcher process died -> gracefully shutdown your application
+type Config struct {
+	OnPanic        func(Panic) // required
+	OnWatcherError func(error) // optional, used for reporting watcher process errors
+	OnWatcherDied  func(error) // optional, you should provide it to shutdown your application gracefully
 }
 
 const (
@@ -30,17 +29,13 @@ const (
 	cookieValue = "zQXfl15CShjg5yQzEqoGAIgFeyXhlr9JQABuYCXm"
 )
 
-var Config = config{
-	FullPaths: true,
-	OnError:   func(error) {},
-	OnWatcherDied: func(error) {
-		log.Fatalln("watcher processes died")
-	},
-}
+func Start(config Config) error {
+	if config.OnPanic == nil {
+		panic("panicwatch: Config.OnPanic must be set")
+	}
 
-func Start(panicCallback func(Panic)) error {
 	if os.Getenv(cookieName) == cookieValue {
-		runMonitoringProcess(panicCallback)
+		runMonitoringProcess(config)
 		panic("this never should've been executed")
 	}
 
@@ -54,21 +49,23 @@ func Start(panicCallback func(Panic)) error {
 		return err
 	}
 
-	stderrPipeFd, err := syscall.Dup(int(os.Stderr.Fd()))
+	originalStderrFd, err := dup(int(os.Stderr.Fd()))
 	if err != nil {
 		return err
 	}
 
-	err = syscall.Dup2(int(stderrW.Fd()), int(os.Stderr.Fd()))
+	err = redirectStderr(stderrW)
 	if err != nil {
 		return err
 	}
+
+	originalStderr := os.NewFile(uintptr(originalStderrFd), os.Stderr.Name())
 
 	cmd := exec.Command(exePath, os.Args[1:]...)
 	cmd.Env = append(os.Environ(), cookieName+"="+cookieValue)
 	cmd.Stdin = stderrR
 	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.NewFile(uintptr(stderrPipeFd), "stderrPipe")
+	cmd.Stderr = originalStderr
 
 	err = cmd.Start()
 	if err != nil {
@@ -77,17 +74,19 @@ func Start(panicCallback func(Panic)) error {
 
 	go func() {
 		err := cmd.Wait()
-		_ = syscall.Dup2(int(stderrPipeFd), int(os.Stderr.Fd()))
+		_ = redirectStderr(originalStderr)
 
-		Config.OnWatcherDied(err)
+		if config.OnWatcherDied == nil {
+			log.Fatalln("panicwatch: watcher process died")
+		}
+
+		config.OnWatcherDied(err)
 	}()
-
-	time.Sleep(time.Millisecond) // wait a moment for the child process to catch-up
 
 	return nil
 }
 
-func runMonitoringProcess(panicCallback func(Panic)) {
+func runMonitoringProcess(config Config) {
 	signal.Ignore(syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
 
 	readBuffer := make([]byte, 1000)
@@ -98,7 +97,11 @@ func runMonitoringProcess(panicCallback func(Panic)) {
 		if n > 0 {
 			_, wErr := os.Stderr.Write(readBuffer[:n])
 			if wErr != nil {
-				Config.OnError(wErr)
+				if config.OnWatcherError != nil {
+					config.OnWatcherError(wErr)
+				}
+
+				os.Exit(1)
 			}
 
 			_, _ = buffer.WriteAndMaybeOverwriteOldestData(readBuffer[:n])
@@ -106,11 +109,12 @@ func runMonitoringProcess(panicCallback func(Panic)) {
 
 		if err == io.EOF {
 			bufferBytes := buffer.Bytes()
+
 			index := findLastPanicStartIndex(bufferBytes)
 			if index != -1 {
 				matches := regexp.MustCompile(`(?sm)panic: (.*?$)?\n+(.*)\z`).FindSubmatch(bufferBytes[index:])
 				if matches != nil {
-					panicCallback(Panic{string(matches[1]), string(matches[2])})
+					config.OnPanic(Panic{string(matches[1]), string(matches[2])})
 				}
 			}
 
@@ -118,7 +122,11 @@ func runMonitoringProcess(panicCallback func(Panic)) {
 		}
 
 		if err != nil {
-			Config.OnError(err)
+			if config.OnWatcherError != nil {
+				config.OnWatcherError(err)
+			}
+
+			os.Exit(1)
 		}
 	}
 }
