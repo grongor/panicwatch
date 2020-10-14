@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"regexp"
-	"syscall"
 
 	"github.com/glycerine/rbuf"
 )
@@ -87,7 +86,7 @@ func Start(config Config) error {
 }
 
 func runMonitoringProcess(config Config) {
-	signal.Ignore(syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
+	signal.Ignore()
 
 	readBuffer := make([]byte, 1000)
 	buffer := rbuf.NewFixedSizeRingBuf(1e5)
