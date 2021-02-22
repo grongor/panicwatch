@@ -21,6 +21,6 @@ err := panicwatch.Start(panicwatch.Config{
     }, 
 })
 if err != nil {
-    log.Fatal("failed to start panicwatch: " + err.error)
+    log.Fatal("failed to start panicwatch: " + err.Error())
 }
 ```
