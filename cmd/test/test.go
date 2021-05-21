@@ -39,7 +39,10 @@ func main() {
 		os.Exit(3)
 	}
 
-	cmd := args[0]
+	executeCommand(args[0])
+}
+
+func executeCommand(cmd string) {
 	switch cmd {
 	case "no-panic":
 		stdout("some stdout output")
@@ -59,19 +62,24 @@ func main() {
 		_ = os.Stderr.Sync()
 
 		time.Sleep(time.Millisecond * 500)
-		stderr("c: i'm split in two lol")
+		stderr("c: i'm split in three lol")
 		stderr("\ngoroutine 1 [running]:")
 
 		_ = os.Stderr.Sync()
 
 		time.Sleep(time.Millisecond * 500)
 
-		stderr("main.main()")
-
 		_, filename, _, _ := runtime.Caller(0)
 		projectDir := path.Dir(path.Dir(path.Dir(filename)))
 
-		stderr(fmt.Sprintf("\t\t%s/cmd/test/test.go:69 +0x12ab", projectDir))
+		stderr("main.executeCommand(0x7fff79030f93, 0x22)")
+		stderr(fmt.Sprintf("\t\t%s/cmd/test/test.go:83 +0x8d7", projectDir))
+
+		_ = os.Stderr.Sync()
+
+		stderr("main.main()")
+
+		stderr(fmt.Sprintf("\t\t%s/cmd/test/test.go:42 +0x12ab", projectDir))
 		os.Exit(2)
 	case "panic-with-garbage":
 		stderr("panic: blah blah\n")

@@ -3,6 +3,7 @@ package panicwatch_test
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -17,8 +18,10 @@ import (
 )
 
 const panicRegexTemplate = `goroutine 1 \[running\]:
+main\.executeCommand\(0x[a-z0-9]+, 0x[a-z0-9]+\)
+\s+%[1]s/cmd/test/test\.go:\d+ \+0x[a-z0-9]+
 main.main\(\)
-\s+%scmd/test/test\.go:\d+ \+0x[a-z0-9]+
+\s+%[1]s/cmd/test/test\.go:\d+ \+0x[a-z0-9]+
 `
 
 func TestPanicwatch(t *testing.T) {
@@ -31,12 +34,14 @@ func TestPanicwatch(t *testing.T) {
 
 	garbageString := builder.String()
 
+	panicRegex := getPanicRegex()
+
 	tests := []struct {
 		command          string
-		expectedExitCode int
 		expectedStdout   string
 		expectedStderr   string
 		expectedPanic    string
+		expectedExitCode int
 	}{
 		{
 			command:        "no-panic",
@@ -64,7 +69,7 @@ func TestPanicwatch(t *testing.T) {
 		{
 			command:          "panic-sync-split",
 			expectedExitCode: 2,
-			expectedPanic:    "i'm split in two lol",
+			expectedPanic:    "i'm split in three lol",
 		},
 		{
 			command:          "panic-with-garbage",
@@ -82,7 +87,7 @@ func TestPanicwatch(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.command, func(t *testing.T) {
-			require := require.New(t)
+			assert := require.New(t)
 
 			cmd, stdout, stderr, resultFile := helperProcess(test.command)
 			defer os.Remove(resultFile)
@@ -90,43 +95,45 @@ func TestPanicwatch(t *testing.T) {
 			err := cmd.Run()
 
 			if test.expectedExitCode == 0 {
-				require.NoError(err, "unexpeced exit code, stderr: "+stderr.String())
+				assert.NoError(err, "unexpected exit code, stderr: "+stderr.String())
 			} else {
-				require.Error(err)
-				require.Equal(
+				assert.Error(err)
+
+				var exitErr *exec.ExitError
+
+				assert.True(errors.As(err, &exitErr))
+				assert.Equal(
 					test.expectedExitCode,
-					err.(*exec.ExitError).ExitCode(),
+					exitErr.ExitCode(),
 					"unexpected exit code, stderr: "+stderr.String(),
 				)
 			}
 
 			result := readResult(resultFile)
 
-			require.Equal(test.expectedPanic, result.Message)
+			assert.Equal(test.expectedPanic, result.Message)
 
 			if test.expectedPanic != "" {
-				panicRegex := getPanicRegex()
-
-				require.Regexp(panicRegex, result.Stack)
+				assert.Regexp(panicRegex, result.Stack)
 
 				if test.expectedStderr != "" {
-					require.True(strings.HasPrefix(stderr.String(), test.expectedStderr))
+					assert.True(strings.HasPrefix(stderr.String(), test.expectedStderr))
 				}
 
-				require.Regexp(
+				assert.Regexp(
 					fmt.Sprintf("panic: %s\n\n%s", test.expectedPanic, panicRegex),
 					stderr.String(),
 				)
 			} else {
-				require.Equal(test.expectedStderr, stderr.String())
+				assert.Equal(test.expectedStderr, stderr.String())
 			}
 
-			require.Equal(test.expectedStdout, stdout.String())
+			assert.Equal(test.expectedStdout, stdout.String())
 		})
 	}
 }
 
-// each test uses this test method to run a separate process in order to test the functionality
+// Each test uses this test method to run a separate process in order to test the functionality.
 func helperProcess(command string) (*exec.Cmd, *bytes.Buffer, *bytes.Buffer, string) {
 	f, err := ioutil.TempFile("", "result")
 	if err != nil {
@@ -146,7 +153,7 @@ func getPanicRegex() string {
 	_, filename, _, _ := runtime.Caller(0)
 	dir := path.Dir(filename)
 
-	return fmt.Sprintf(panicRegexTemplate, dir+"/")
+	return fmt.Sprintf(panicRegexTemplate, dir)
 }
 
 func readResult(resultFile string) panicwatch.Panic {
