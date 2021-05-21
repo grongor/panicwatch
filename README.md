@@ -1,7 +1,7 @@
 panicwatch
 ==========
 
-![CI](https://github.com/grongor/go-snmp-proxy/workflows/CI/badge.svg)
+![CI](https://github.com/grongor/panicwatch/workflows/CI/badge.svg)
 
 Simple utility for catching panics in your Go applications.
 
