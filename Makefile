@@ -1,8 +1,6 @@
 export BIN = ${PWD}/bin
 export GOBIN = $(BIN)
 
-pkgs = $(shell go list ./...)
-
 .PHONY: check
 check: lint test
 
@@ -15,9 +13,18 @@ fix: $(BIN)/golangci-lint
 	$(BIN)/golangci-lint run --fix
 
 .PHONY: test
-test:
+test: test-unit
+
+.PHONY: test-unit
+test-unit:
 	go build cmd/test/test.go
-	go test
+	go test --timeout 5m --count 1 ./...
+	go test --timeout 5m --count 1 --race ./...
+	go test --timeout 5m --count 10 ./...
+
+.PHONY: clean
+clean:
+	rm -rf bin
 
 $(BIN)/golangci-lint:
-	curl --retry 5 -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.30.0
+	curl --retry 5 -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh

@@ -2,6 +2,7 @@ package panicwatch
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"log"
 	"os"
@@ -106,7 +107,7 @@ func runMonitoringProcess(config Config) {
 			_, _ = buffer.WriteAndMaybeOverwriteOldestData(readBuffer[:n])
 		}
 
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			bufferBytes := buffer.Bytes()
 
 			index := findLastPanicStartIndex(bufferBytes)
