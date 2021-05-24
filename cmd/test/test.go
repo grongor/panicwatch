@@ -73,13 +73,13 @@ func executeCommand(cmd string) {
 		projectDir := path.Dir(path.Dir(path.Dir(filename)))
 
 		stderr("main.executeCommand(0x7fff79030f93, 0x22)")
-		stderr(fmt.Sprintf("\t\t%s/cmd/test/test.go:83 +0x8d7", projectDir))
+		stderr(fmt.Sprintf("\t%s/cmd/test/test.go:83 +0x8d7", projectDir))
 
 		_ = os.Stderr.Sync()
 
 		stderr("main.main()")
 
-		stderr(fmt.Sprintf("\t\t%s/cmd/test/test.go:42 +0x12ab", projectDir))
+		stderr(fmt.Sprintf("\t%s/cmd/test/test.go:42 +0x12ab", projectDir))
 		os.Exit(2)
 	case "panic-with-garbage":
 		stderr("panic: blah blah\n")
