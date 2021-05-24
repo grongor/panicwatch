@@ -11,11 +11,21 @@ import (
 	"regexp"
 
 	"github.com/glycerine/rbuf"
+	goerrors "github.com/go-errors/errors"
 )
 
 type Panic struct {
 	Message string
 	Stack   string
+}
+
+func (p Panic) AsError() error {
+	parsedErr, err := goerrors.ParsePanic("panic: " + p.Message + "\n" + p.Stack)
+	if err != nil {
+		return errors.New(p.Message)
+	}
+
+	return parsedErr
 }
 
 type Config struct {

@@ -10,18 +10,20 @@ import (
 	"os/exec"
 	"path"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 
+	goerrors "github.com/go-errors/errors"
 	"github.com/grongor/panicwatch"
 	"github.com/stretchr/testify/require"
 )
 
 const panicRegexTemplate = `goroutine 1 \[running\]:
 main\.executeCommand\(0x[a-z0-9]+, 0x[a-z0-9]+\)
-\s+%[1]s/cmd/test/test\.go:\d+ \+0x[a-z0-9]+
+\t%[1]s/cmd/test/test\.go:\d+ \+0x[a-z0-9]+
 main.main\(\)
-\s+%[1]s/cmd/test/test\.go:\d+ \+0x[a-z0-9]+
+\t%[1]s/cmd/test/test\.go:\d+ \+0x[a-z0-9]+
 `
 
 func TestPanicwatch(t *testing.T) {
@@ -109,26 +111,50 @@ func TestPanicwatch(t *testing.T) {
 				)
 			}
 
+			assert.Equal(test.expectedStdout, stdout.String())
+
 			result := readResult(resultFile)
 
 			assert.Equal(test.expectedPanic, result.Message)
 
-			if test.expectedPanic != "" {
-				assert.Regexp(panicRegex, result.Stack)
-
-				if test.expectedStderr != "" {
-					assert.True(strings.HasPrefix(stderr.String(), test.expectedStderr))
-				}
-
-				assert.Regexp(
-					fmt.Sprintf("panic: %s\n\n%s", test.expectedPanic, panicRegex),
-					stderr.String(),
-				)
-			} else {
+			if test.expectedPanic == "" {
 				assert.Equal(test.expectedStderr, stderr.String())
+
+				return
 			}
 
-			assert.Equal(test.expectedStdout, stdout.String())
+			assert.Regexp(panicRegex, result.Stack)
+
+			if test.expectedStderr != "" {
+				assert.True(strings.HasPrefix(stderr.String(), test.expectedStderr))
+			}
+
+			assert.Regexp(
+				fmt.Sprintf("panic: %s\n\n%s", test.expectedPanic, panicRegex),
+				stderr.String(),
+			)
+
+			var resultAsErr *goerrors.Error
+
+			assert.True(errors.As(result.AsError(), &resultAsErr))
+
+			assert.Equal(test.expectedPanic, resultAsErr.Error())
+
+			builder := strings.Builder{}
+
+			builder.WriteString("goroutine 1 [running]:\n")
+
+			for _, frame := range resultAsErr.StackFrames() {
+				if frame.Name == "main" {
+					builder.WriteString(frame.Package + `.` + frame.Name + `()` + "\n")
+				} else {
+					builder.WriteString(frame.Package + `.` + frame.Name + `(0x0, 0x0)` + "\n")
+				}
+
+				builder.WriteString("\t" + frame.File + ":" + strconv.Itoa(frame.LineNumber) + ` +0x0` + "\n")
+			}
+
+			assert.Regexp(panicRegex, builder.String())
 		})
 	}
 }
