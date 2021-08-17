@@ -30,7 +30,7 @@ linters:
         - nlreturn
         - noctx
         - nolintlint
-        #        - paralleltest # @todo check later, maybe enable
+#        - paralleltest # @todo check later, maybe enable
         - prealloc
         - predeclared
         - revive
@@ -51,53 +51,58 @@ linters-settings:
         enable-all: true
 
     revive:
-        ignoreGeneratedHeader: true
+        ignore-generated-header: true
         confidence: 0.8
-        errorCode: 0
+        error-code: 0
         severity: error
         rules:
-            - name: atomic
-            - name: bare-return
-            - name: blank-imports
-            - name: bool-literal-in-expr
-            - name: confusing-results
-            - name: constant-logical-expr
-            - name: context-as-argument
-            - name: context-keys-type
-            - name: defer
-            - name: dot-imports
-            - name: early-return
-            - name: empty-block
-            - name: empty-lines
-            - name: error-naming
-            - name: error-return
-            - name: error-strings
-            - name: flag-parameter
-            - name: get-return
-            - name: identical-branches
-            - name: if-return
-            - name: import-shadowing
-            - name: increment-decrement
-            - name: indent-error-flow
-            - name: modifies-parameter
-            - name: modifies-value-receiver
-            - name: range
-            - name: range-val-address
-            - name: range-val-in-closure
-            - name: receiver-naming
-            - name: redefines-builtin-id
-            - name: string-of-int
-            - name: struct-tag
-            - name: superfluous-else
-            - name: time-naming
-            - name: unconditional-recursion
-            - name: unexported-naming
-            - name: unexported-return
-            - name: unnecessary-stmt
-            - name: unused-parameter
-            - name: unused-receiver
-            - name: var-declaration
-            - name: waitgroup-by-value
+            -   name: atomic
+            -   name: bare-return
+            -   name: blank-imports
+            -   name: bool-literal-in-expr
+            -   name: confusing-naming
+            -   name: confusing-results
+            -   name: constant-logical-expr
+            -   name: context-as-argument
+            -   name: context-keys-type
+            -   name: defer
+            -   name: dot-imports
+            -   name: duplicated-imports
+            -   name: early-return
+            -   name: empty-block
+            -   name: empty-lines
+            -   name: error-naming
+            -   name: error-return
+            -   name: error-strings
+            -   name: flag-parameter
+            -   name: get-return
+            -   name: identical-branches
+            -   name: if-return
+            -   name: import-shadowing
+            -   name: increment-decrement
+            -   name: indent-error-flow
+            -   name: modifies-parameter
+            -   name: modifies-value-receiver
+            -   name: nested-structs
+            -   name: range
+            -   name: range-val-address
+            -   name: range-val-in-closure
+            -   name: receiver-naming
+            -   name: redefines-builtin-id
+            -   name: string-of-int
+            -   name: struct-tag
+            -   name: superfluous-else
+            -   name: time-naming
+            -   name: unconditional-recursion
+            -   name: unexported-naming
+            -   name: unexported-naming
+            -   name: unexported-return
+            -   name: unnecessary-stmt
+            -   name: unused-parameter
+            -   name: unused-receiver
+            -   name: useless-break
+            -   name: var-declaration
+            -   name: waitgroup-by-value
 
     lll:
         tab-width: 4
@@ -111,25 +116,22 @@ issues:
     exclude-rules:
         # ignore unchecked errors, missing Close(), code complexity, global variables and line lengths in tests
         -   path: _test\.go
-            linters: [errcheck, bodyclose, cyclop, gocognit, gochecknoglobals, lll]
+            linters: [ errcheck, bodyclose, cyclop, gocognit, gochecknoglobals, lll ]
         # ignore control flags in tests
         -   path: _test\.go
             text: "seems to be a control flag, avoid control coupling"
-            linters: [revive]
+            linters: [ revive ]
         # ignore unchecked errors in defer statements
         -   source: "^\t+defer "
-            linters: [errcheck]
-        # ignore default Revive linters which we don't want
-        -   text: "^(errorf|exported|package-comments|unreachable-code|var-naming): "
-            linters: [revive]
+            linters: [ errcheck ]
         # ignore defer cuddle in tests
         -   path: _test\.go
             text: only one cuddle assignment allowed before defer statement
-            linters: [wsl]
+            linters: [ wsl ]
         # ignore expressions after assignment in tests
         -   path: _test\.go
             text: only cuddled expressions if assigning variable or using from line above
-            linters: [wsl]
+            linters: [ wsl ]
         # ignore goerr113 dynamic errors definition error...not sure how to approach this correctly now
         -   text: do not define dynamic errors, use wrapped static errors instead
-            linters: [goerr113]
+            linters: [ goerr113 ]
