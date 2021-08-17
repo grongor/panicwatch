@@ -20,7 +20,7 @@ import (
 )
 
 const panicRegexTemplate = `goroutine 1 \[running\]:
-main\.executeCommand\(0x[a-z0-9]+, 0x[a-z0-9]+\)
+main\.executeCommand\({?0x[a-z0-9]+, 0x[a-z0-9]+}?\)
 \t%[1]s/cmd/test/test\.go:\d+ \+0x[a-z0-9]+
 main.main\(\)
 \t%[1]s/cmd/test/test\.go:\d+ \+0x[a-z0-9]+
@@ -166,7 +166,10 @@ func helperProcess(command string) (*exec.Cmd, *bytes.Buffer, *bytes.Buffer, str
 		panic(err)
 	}
 
-	f.Close()
+	err = f.Close()
+	if err != nil {
+		panic(err)
+	}
 
 	cmd := exec.Command("./test", command, f.Name())
 	cmd.Stderr = new(bytes.Buffer)

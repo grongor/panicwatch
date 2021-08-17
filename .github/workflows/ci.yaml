@@ -26,26 +26,25 @@ jobs:
         steps:
             -   uses: actions/checkout@v2
             -   uses: actions/setup-go@v2
-            -   uses: uraimo/run-on-arch-action@v1.1.0
+            -   uses: uraimo/run-on-arch-action@v2.1.1
                 id: runcmd
                 with:
-                    architecture: ${{ matrix.arch }}
-                    distribution: buster
-                    run: |
-                        set -eux
+                    arch: ${{ matrix.arch }}
+                    distro: bullseye
+                    install: |
                         apt update
                         apt install -y build-essential wget
 
                         if [[ ${{ matrix.arch }} == arm* ]]; then
-                            pkg=go1.16.linux-armv6l.tar.gz
+                            pkg=go1.17.linux-armv6l.tar.gz
                         else
-                            pkg=go1.16.linux-arm64.tar.gz
+                            pkg=go1.17.linux-arm64.tar.gz
                         fi
 
                         wget https://golang.org/dl/$pkg
                         tar -C /usr/local -xzf $pkg
+                    run: |
                         export PATH=$PATH:/usr/local/go/bin
-
                         go build cmd/test/test.go
                         go test --timeout 5m --count 1 ./...
 
