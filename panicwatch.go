@@ -41,7 +41,7 @@ const (
 
 func Start(config Config) error {
 	if config.OnPanic == nil {
-		panic("panicwatch: Config.OnPanic must be set")
+		return errors.New("OnPanic callback must be set")
 	}
 
 	if os.Getenv(cookieName) == cookieValue {
