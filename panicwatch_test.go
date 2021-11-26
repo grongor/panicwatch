@@ -171,7 +171,7 @@ func helperProcess(command string) (*exec.Cmd, *bytes.Buffer, *bytes.Buffer, str
 		panic(err)
 	}
 
-	cmd := exec.Command("./test", command, f.Name())
+	cmd := exec.Command("./test", command, f.Name()) //nolint:gosec // we control the inputs
 	cmd.Stderr = new(bytes.Buffer)
 	cmd.Stdout = new(bytes.Buffer)
 
