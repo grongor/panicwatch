@@ -15,8 +15,8 @@ Panicwatch isn't meant for recovery from panics, but merely for safe and reliabl
 Panicwatch won't stand in your way: it won't prevent you from any signal handling/manipulation, other file descriptor
 magic on your side, or anything that you can think of. It is completely transparent to your application.
 
-Try using it via [grongor/go-bootstrap](https://github.com/grongor/go-bootstrap), which handles all the annoying
-bootstrapping for you (config, signals, logging, application context, ...). 
+Try using it via [grongor/go-bootstrap](https://github.com/grongor/go-bootstrap): a library that handles all
+the annoying bootstrapping for you (config, signals, logging, application context, ...). 
 
 ```go
 package main

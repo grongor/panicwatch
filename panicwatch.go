@@ -24,7 +24,7 @@ type Panic struct {
 	Stack   string
 }
 
-// AsError returns this structure as instance of error interface. When the panic message and stack aren't malformed,
+// AsError returns the Panic as an instance of error interface. When the panic message and stack aren't malformed,
 // it will return *goerrors.Error, otherwise it will fall back to a simple *errors.errorString,
 // containing just the message.
 func (p Panic) AsError() error {
@@ -36,7 +36,7 @@ func (p Panic) AsError() error {
 	return parsedErr
 }
 
-// Config hold the configuration of panicwatch.
+// Config holds the configuration of panicwatch.
 type Config struct {
 	// BufferSize specifies the size of the read buffer between dup-ed stderr and the real one. Optional/
 	BufferSize int
