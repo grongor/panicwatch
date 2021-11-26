@@ -43,12 +43,11 @@ linters:
         - wsl
 
 linters-settings:
-    goimports:
-        local-prefixes: gitlab.cdn77.eu
-
     govet:
         check-shadowing: false
         enable-all: true
+        disable:
+            - fieldalignment
 
     revive:
         ignore-generated-header: true
@@ -95,7 +94,6 @@ linters-settings:
             -   name: time-naming
             -   name: unconditional-recursion
             -   name: unexported-naming
-            -   name: unexported-naming
             -   name: unexported-return
             -   name: unnecessary-stmt
             -   name: unused-parameter
@@ -124,6 +122,9 @@ issues:
         # ignore unchecked errors in defer statements
         -   source: "^\t+defer "
             linters: [ errcheck ]
+        # ignore default Revive linters which we don't want
+        -   text: "^(errorf|exported|package-comments|unreachable-code|var-naming): "
+            linters: [ revive ]
         # ignore defer cuddle in tests
         -   path: _test\.go
             text: only one cuddle assignment allowed before defer statement
