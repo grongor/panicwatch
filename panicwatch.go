@@ -31,7 +31,7 @@ func (p Panic) AsError() error {
 type Config struct {
 	OnPanic        func(Panic) // required
 	OnWatcherError func(error) // optional, used for reporting watcher process errors
-	OnWatcherDied  func(error) // optional, you should provide it to shutdown your application gracefully
+	OnWatcherDied  func(error) // optional, you should provide it to shut down your application gracefully
 }
 
 const (
@@ -74,8 +74,6 @@ func Start(config Config) error {
 	cmd := exec.Command(exePath, os.Args[1:]...)
 	cmd.Env = append(os.Environ(), cookieName+"="+cookieValue)
 	cmd.Stdin = stderrR
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = originalStderr
 
 	err = cmd.Start()
 	if err != nil {
