@@ -74,8 +74,7 @@ func Start(config Config) error {
 	cmd := exec.Command(exePath, os.Args[1:]...)
 	cmd.Env = append(os.Environ(), cookieName+"="+cookieValue)
 	cmd.Stdin = stderrR
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = originalStderr
+	cmd.Stdout = originalStderr
 
 	err = cmd.Start()
 	if err != nil {
@@ -101,19 +100,11 @@ func runMonitoringProcess(config Config) {
 
 	readBuffer := make([]byte, 1000)
 	buffer := rbuf.NewFixedSizeRingBuf(1e5)
+	reader := io.TeeReader(os.Stdin, os.Stdout)
 
 	for {
-		n, err := os.Stdin.Read(readBuffer)
+		n, err := reader.Read(readBuffer)
 		if n > 0 {
-			_, wErr := os.Stderr.Write(readBuffer[:n])
-			if wErr != nil {
-				if config.OnWatcherError != nil {
-					config.OnWatcherError(wErr)
-				}
-
-				os.Exit(1)
-			}
-
 			_, _ = buffer.WriteAndMaybeOverwriteOldestData(readBuffer[:n])
 		}
 
