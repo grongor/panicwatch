@@ -9,7 +9,7 @@ import (
 )
 
 func dup(oldfd int) (fd int, err error) {
-	return unix.Dup(oldfd)
+	return unix.FcntlInt(uintptr(oldfd), unix.F_DUPFD_CLOEXEC, 0)
 }
 
 func redirectStderr(target *os.File) error {

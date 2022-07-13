@@ -1,8 +1,9 @@
 package panicwatch
 
 import (
-	"golang.org/x/sys/windows"
 	"os"
+
+	"golang.org/x/sys/windows"
 )
 
 func dup(oldfd int) (int, error) {
@@ -11,13 +12,13 @@ func dup(oldfd int) (int, error) {
 	var fdHandle windows.Handle
 
 	err := windows.DuplicateHandle(
-		processHandle,
-		windows.Handle(oldfd),
-		processHandle,
-		&fdHandle,
-		0,
-		true,
-		windows.DUPLICATE_SAME_ACCESS,
+		processHandle,                 // hSourceProcessHandle
+		windows.Handle(oldfd),         // hSourceHandle
+		processHandle,                 // hTargetProcessHandle
+		&fdHandle,                     // lpTargetHandle
+		0,                             // dwDesiredAccess
+		false,                         // bInheritHandle
+		windows.DUPLICATE_SAME_ACCESS, // dwOptions
 	)
 	if err != nil {
 		return 0, err
