@@ -6,7 +6,7 @@ require (
 	github.com/glycerine/rbuf v0.0.0-20190314090850-75b78581bebe
 	github.com/go-errors/errors v1.4.0
 	github.com/stretchr/testify v1.7.0
-	golang.org/x/sys v0.0.0-20210816183151-1e6c022a8912
+	golang.org/x/sys v0.1.0
 )
 
 require (
