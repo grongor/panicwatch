@@ -7,12 +7,14 @@ package panicwatch
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"os"
 	"os/exec"
 	"os/signal"
 	"regexp"
+	"strings"
 
 	"github.com/glycerine/rbuf"
 	goerrors "github.com/go-errors/errors"
@@ -20,14 +22,25 @@ import (
 
 // Panic holds information about a panic parsed from stderr of your application.
 type Panic struct {
+	Type    PanicType
 	Message string
 	Stack   string
 }
+
+type PanicType string
+
+const (
+	TypePanic      PanicType = "panic"
+	TypeFatalError PanicType = "fatal error"
+)
 
 // AsError returns the Panic as an instance of error interface. When the panic message and stack aren't malformed,
 // it will return *goerrors.Error, otherwise it will fall back to a simple *errors.errorString,
 // containing just the message.
 func (p Panic) AsError() error {
+	// hard-coding "panic" and not necessarily the panic's type is actually what's needed here,
+	// as goerrors.ParsePanic does expect its input to start with "panic: "
+	// it still works for other types of errors though
 	parsedErr, err := goerrors.ParsePanic("panic: " + p.Message + "\n" + p.Stack)
 	if err != nil {
 		return errors.New(p.Message)
@@ -159,9 +172,8 @@ func runMonitoringProcess(config Config) {
 
 			index := findLastPanicStartIndex(bufferBytes)
 			if index != -1 {
-				matches := regexp.MustCompile(`(?sm)panic: (.*?$)?\n+(.*)\z`).FindSubmatch(bufferBytes[index:])
-				if matches != nil {
-					config.OnPanic(Panic{string(matches[1]), string(matches[2])})
+				if parsed := parsePanic(bufferBytes[index:]); parsed != nil {
+					config.OnPanic(*parsed)
 				}
 			}
 
@@ -178,21 +190,48 @@ func runMonitoringProcess(config Config) {
 	}
 }
 
+const panicHeaderSuffix = ": "
+
+var panicTypes = [...]string{
+	string(TypePanic),
+	string(TypeFatalError),
+}
+
+var panicHeaders = [...][]byte{
+	[]byte(TypePanic + panicHeaderSuffix),
+	[]byte(TypeFatalError + panicHeaderSuffix),
+}
+
+var panicRegexp = regexp.MustCompile(
+	fmt.Sprintf(`(?sm)(%s)%s(.*?$)?\n+(.*)\z`, strings.Join(panicTypes[:], "|"), panicHeaderSuffix),
+)
+
 func findLastPanicStartIndex(b []byte) int {
 	for {
-		index := bytes.LastIndex(b, []byte("panic: "))
+		index := bytes.LastIndexByte(b, '\n')
+
+		for _, panicHeader := range panicHeaders {
+			if bytes.HasPrefix(b[index+1:], panicHeader) {
+				return index + 1
+			}
+		}
+
 		if index == -1 {
 			return -1
 		}
 
-		if index == 0 {
-			return 0
-		}
-
-		if b[index-1] == '\n' {
-			return index
-		}
-
 		b = b[:index]
 	}
+}
+
+func parsePanic(raw []byte) *Panic {
+	if matches := panicRegexp.FindSubmatch(raw); matches != nil {
+		return &Panic{
+			Type:    PanicType(matches[1]),
+			Message: string(matches[2]),
+			Stack:   string(matches[3]),
+		}
+	}
+
+	return nil
 }

@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const panicRegexTemplate = `goroutine 1 \[running\]:\r?\n` +
+const panicRegexTemplate = `goroutine 1 \[runn(?:ing|able)\]:\r?\n` +
 	`main\.executeCommand\(.*?\)\r?\n` +
 	`\t%[1]s/cmd/test/test\.go:\d+ \+0x[a-z0-9]+\r?\n` +
 	`main.main\(\)\r?\n` +
@@ -38,11 +38,16 @@ func TestPanicwatch(t *testing.T) {
 	panicRegex := getPanicRegex()
 
 	tests := []struct {
-		command          string
-		expectedStdout   string
-		expectedStderr   string
-		expectedPanic    string
-		expectedExitCode int
+		command        string
+		expectedStdout string
+		expectedStderr string
+		// expectedPanicType defaults to panicwatch.TypePanic if empty and expectedPanic is not empty.
+		expectedPanicType panicwatch.PanicType
+		expectedPanic     string
+		expectedExitCode  int
+		// nonDeterministicStacktrace is a flag controlling whether stacktrace is checked.
+		// This comes in handy for tests that involve several routines, any of which can cause the crash.
+		nonDeterministicStacktrace bool
 	}{
 		{
 			command:        "no-panic",
@@ -85,6 +90,13 @@ func TestPanicwatch(t *testing.T) {
 			expectedStderr:   "panic: this is fake\n\n",
 			expectedPanic:    "and this is not",
 		},
+		{
+			command:                    "fatal-error",
+			expectedExitCode:           2,
+			expectedPanicType:          panicwatch.TypeFatalError,
+			expectedPanic:              "concurrent map writes",
+			nonDeterministicStacktrace: true,
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.command, func(t *testing.T) {
@@ -114,6 +126,11 @@ func TestPanicwatch(t *testing.T) {
 
 			result := readResult(resultFile)
 
+			if test.expectedPanicType == "" && test.expectedPanic != "" {
+				test.expectedPanicType = panicwatch.TypePanic
+			}
+
+			assert.Equal(test.expectedPanicType, result.Type)
 			assert.Equal(test.expectedPanic, result.Message)
 
 			if test.expectedPanic == "" {
@@ -124,38 +141,47 @@ func TestPanicwatch(t *testing.T) {
 
 			assert.Regexp(panicRegex, result.Stack)
 
+			stderrString := stderr.String()
+
 			if test.expectedStderr != "" {
-				assert.True(strings.HasPrefix(stderr.String(), test.expectedStderr))
+				assert.True(strings.HasPrefix(stderrString, test.expectedStderr))
+				stderrString = strings.TrimPrefix(stderrString, test.expectedStderr)
 			}
 
-			assert.Regexp(
-				fmt.Sprintf("panic: %s\n\n%s", test.expectedPanic, panicRegex),
-				stderr.String(),
-			)
+			expectedPanicStart := fmt.Sprintf("%s: %s\n", test.expectedPanicType, test.expectedPanic)
+			assert.True(strings.HasPrefix(stderrString, expectedPanicStart),
+				"%q does not start with %q", stderrString, expectedPanicStart)
+
+			assert.Regexp(panicRegex, stderrString)
 
 			var resultAsErr *goerrors.Error
 
 			assert.True(errors.As(result.AsError(), &resultAsErr))
-
 			assert.Equal(test.expectedPanic, resultAsErr.Error())
 
-			builder := strings.Builder{}
-
-			builder.WriteString("goroutine 1 [running]:\n")
-
-			for _, frame := range resultAsErr.StackFrames() {
-				if frame.Name == "main" {
-					builder.WriteString(frame.Package + `.` + frame.Name + `()` + "\n")
-				} else {
-					builder.WriteString(frame.Package + `.` + frame.Name + `(0x0, 0x0)` + "\n")
-				}
-
-				builder.WriteString("\t" + frame.File + ":" + strconv.Itoa(frame.LineNumber) + ` +0x0` + "\n")
+			if !test.nonDeterministicStacktrace {
+				testStackTrace(assert, resultAsErr, panicRegex)
 			}
-
-			assert.Regexp(panicRegex, builder.String())
 		})
 	}
+}
+
+func testStackTrace(assert *require.Assertions, resultAsErr *goerrors.Error, panicRegexp string) {
+	builder := strings.Builder{}
+
+	builder.WriteString("goroutine 1 [running]:\n")
+
+	for _, frame := range resultAsErr.StackFrames() {
+		if frame.Name == "main" {
+			builder.WriteString(frame.Package + `.` + frame.Name + `()` + "\n")
+		} else {
+			builder.WriteString(frame.Package + `.` + frame.Name + `(0x0, 0x0)` + "\n")
+		}
+
+		builder.WriteString("\t" + frame.File + ":" + strconv.Itoa(frame.LineNumber) + ` +0x0` + "\n")
+	}
+
+	assert.Regexp(panicRegexp, builder.String())
 }
 
 // Each test uses this test method to run a separate process in order to test the functionality.
