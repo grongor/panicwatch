@@ -19,8 +19,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const panicRegexTemplate = `goroutine 1 \[running\]:
-main\.executeCommand\({?0x[a-z0-9]+, 0x[a-z0-9]+}?\)
+const panicRegexTemplate = `goroutine 1 \[runn(?:ing|able)\]:
+main\.executeCommand\({?0x[a-z0-9]+\??, 0x[a-z0-9]+\??}?\)
 \t%[1]s/cmd/test/test\.go:\d+ \+0x[a-z0-9]+
 main.main\(\)
 \t%[1]s/cmd/test/test\.go:\d+ \+0x[a-z0-9]+
@@ -39,11 +39,16 @@ func TestPanicwatch(t *testing.T) {
 	panicRegex := getPanicRegex()
 
 	tests := []struct {
-		command          string
-		expectedStdout   string
-		expectedStderr   string
-		expectedPanic    string
-		expectedExitCode int
+		command        string
+		expectedStdout string
+		expectedStderr string
+		expectedPanic  string
+		// expectedPanicType defaults to panicwatch.TypePanic if empty and expectedPanic is not empty
+		expectedPanicType panicwatch.PanicType
+		expectedExitCode  int
+		// if true, the test won't attempt to check the stacktrace
+		// this comes in handy for tests that involve several routines, any of which can cause the crash
+		nonDeterministicStacktrace bool
 	}{
 		{
 			command:        "no-panic",
@@ -86,6 +91,13 @@ func TestPanicwatch(t *testing.T) {
 			expectedStderr:   "panic: this is fake\n\n",
 			expectedPanic:    "and this is not",
 		},
+		{
+			command:                    "fatal",
+			expectedExitCode:           2,
+			expectedPanicType:          panicwatch.TypeFatalError,
+			expectedPanic:              "concurrent map writes",
+			nonDeterministicStacktrace: true,
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.command, func(t *testing.T) {
@@ -125,14 +137,24 @@ func TestPanicwatch(t *testing.T) {
 
 			assert.Regexp(panicRegex, result.Stack)
 
+			actualStderr := stderr.String()
+
 			if test.expectedStderr != "" {
-				assert.True(strings.HasPrefix(stderr.String(), test.expectedStderr))
+				assert.True(strings.HasPrefix(actualStderr, test.expectedStderr))
+				actualStderr = strings.TrimPrefix(actualStderr, test.expectedStderr)
 			}
 
-			assert.Regexp(
-				fmt.Sprintf("panic: %s\n\n%s", test.expectedPanic, panicRegex),
-				stderr.String(),
-			)
+			expectedPanicType := test.expectedPanicType
+			if expectedPanicType == "" {
+				expectedPanicType = panicwatch.TypePanic
+			}
+			assert.Equal(expectedPanicType, result.Type)
+
+			expectedPanicStart := fmt.Sprintf("%s: %s\n\n", expectedPanicType, test.expectedPanic)
+			assert.True(strings.HasPrefix(actualStderr, expectedPanicStart))
+			actualStderr = strings.TrimPrefix(actualStderr, test.expectedStderr)
+
+			assert.Regexp(panicRegex, actualStderr)
 
 			var resultAsErr *goerrors.Error
 
@@ -140,21 +162,23 @@ func TestPanicwatch(t *testing.T) {
 
 			assert.Equal(test.expectedPanic, resultAsErr.Error())
 
-			builder := strings.Builder{}
+			if !test.nonDeterministicStacktrace {
+				builder := strings.Builder{}
 
-			builder.WriteString("goroutine 1 [running]:\n")
+				builder.WriteString("goroutine 1 [running]:\n")
 
-			for _, frame := range resultAsErr.StackFrames() {
-				if frame.Name == "main" {
-					builder.WriteString(frame.Package + `.` + frame.Name + `()` + "\n")
-				} else {
-					builder.WriteString(frame.Package + `.` + frame.Name + `(0x0, 0x0)` + "\n")
+				for _, frame := range resultAsErr.StackFrames() {
+					if frame.Name == "main" {
+						builder.WriteString(frame.Package + `.` + frame.Name + `()` + "\n")
+					} else {
+						builder.WriteString(frame.Package + `.` + frame.Name + `(0x0, 0x0)` + "\n")
+					}
+
+					builder.WriteString("\t" + frame.File + ":" + strconv.Itoa(frame.LineNumber) + ` +0x0` + "\n")
 				}
 
-				builder.WriteString("\t" + frame.File + ":" + strconv.Itoa(frame.LineNumber) + ` +0x0` + "\n")
+				assert.Regexp(panicRegex, builder.String())
 			}
-
-			assert.Regexp(panicRegex, builder.String())
 		})
 	}
 }
