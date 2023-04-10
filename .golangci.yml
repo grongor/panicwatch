@@ -15,7 +15,6 @@ linters: # 2022-07-21 modified
         - exhaustive
         - exportloopref
         - gci
-        - gochecknoglobals
         - gochecknoinits
         - gocognit # probably tune
         - goconst

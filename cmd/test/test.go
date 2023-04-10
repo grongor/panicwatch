@@ -41,7 +41,7 @@ func main() {
 	executeCommand(args[0])
 }
 
-func executeCommand(cmd string) {
+func executeCommand(cmd string) { //nolint:cyclop // we must keep everything here because of stack traces
 	switch cmd {
 	case "no-panic":
 		stdout("some stdout output")
@@ -93,6 +93,18 @@ func executeCommand(cmd string) {
 		stderr("panic: this is fake\n")
 
 		panic("and this is not")
+	case "fatal-error": // force a concurrent map error
+		m := make(map[int]int)
+
+		go func() {
+			for {
+				m[0] = 0
+			}
+		}()
+
+		for {
+			m[0] = 0
+		}
 	default:
 		stderr("unknown command:", cmd)
 		os.Exit(3)
