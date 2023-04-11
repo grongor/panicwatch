@@ -151,7 +151,8 @@ func TestPanicwatch(t *testing.T) {
 			assert.Equal(expectedPanicType, result.Type)
 
 			expectedPanicStart := fmt.Sprintf("%s: %s\n\n", expectedPanicType, test.expectedPanic)
-			assert.True(strings.HasPrefix(actualStderr, expectedPanicStart))
+			assert.True(strings.HasPrefix(actualStderr, expectedPanicStart),
+				"%q does not start with %q", actualStderr, expectedPanicStart)
 			actualStderr = strings.TrimPrefix(actualStderr, test.expectedStderr)
 
 			assert.Regexp(panicRegex, actualStderr)

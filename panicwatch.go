@@ -153,6 +153,7 @@ func checkConfig(config *Config) error {
 	return nil
 }
 
+//nolint:gochecknoglobals
 var panicTypes = []string{
 	string(TypePanic),
 	string(TypeFatalError),
@@ -220,7 +221,8 @@ func findLastPanicStartIndex(b []byte) int {
 }
 
 func parsePanic(raw []byte) *Panic {
-	panicRegex := regexp.MustCompile(`(?sm)(` + strings.Join(panicTypes, "|") + ")" + panicHeaderSuffix + `(.*?$)?\n+(.*)\z`)
+	panicRegex := regexp.MustCompile(`(?sm)(` + strings.Join(panicTypes, "|") + ")" +
+		panicHeaderSuffix + `(.*?$)?\n+(.*)\z`)
 
 	matches := panicRegex.FindSubmatch(raw)
 	if matches != nil {

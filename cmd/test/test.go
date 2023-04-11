@@ -97,11 +97,12 @@ func executeCommand(cmd string) {
 	case "fatal":
 		// force a concurrent map error
 		m := make(map[int]int)
-		go func() {
+		go func() { //nolint:wsl
 			for {
 				m[0] = 0
 			}
 		}()
+
 		for {
 			m[0] = 0
 		}
