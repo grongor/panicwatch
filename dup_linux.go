@@ -1,4 +1,4 @@
-// +build arm arm64
+//go:build arm || arm64
 
 package panicwatch
 

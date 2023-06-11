@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"runtime"
@@ -26,7 +25,7 @@ func main() {
 			os.Exit(3)
 		}
 
-		err = ioutil.WriteFile(args[1], result, 0)
+		err = os.WriteFile(args[1], result, 0)
 		if err != nil {
 			stderr("failed to write results: " + err.Error())
 			os.Exit(3)
@@ -100,10 +99,10 @@ func executeCommand(cmd string) {
 	}
 }
 
-func stdout(a ...interface{}) {
+func stdout(a ...any) {
 	_, _ = fmt.Fprintln(os.Stdout, a...)
 }
 
-func stderr(a ...interface{}) {
+func stderr(a ...any) {
 	_, _ = fmt.Fprintln(os.Stderr, a...)
 }

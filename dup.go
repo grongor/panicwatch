@@ -1,5 +1,4 @@
-// +build linux,!arm,!arm64 !linux
-// +build !windows
+//go:build ((linux && !arm && !arm64) || !linux) && !windows
 
 package panicwatch
 
