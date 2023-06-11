@@ -19,12 +19,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const panicRegexTemplate = `goroutine 1 \[running\]:
-main\.executeCommand\({?0x[a-z0-9]+, 0x[a-z0-9]+}?\)
-\t%[1]s/cmd/test/test\.go:\d+ \+0x[a-z0-9]+
-main.main\(\)
-\t%[1]s/cmd/test/test\.go:\d+ \+0x[a-z0-9]+
-`
+const panicRegexTemplate = `goroutine 1 \[running\]:\r?\n` +
+	`main\.executeCommand\(.*?\)\r?\n` +
+	`\t%[1]s/cmd/test/test\.go:\d+ \+0x[a-z0-9]+\r?\n` +
+	`main.main\(\)\r?\n` +
+	`\t%[1]s/cmd/test/test\.go:\d+ \+0x[a-z0-9]+\r?\n`
 
 func TestPanicwatch(t *testing.T) {
 	builder := strings.Builder{}
