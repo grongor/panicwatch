@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/glycerine/rbuf v0.0.0-20190314090850-75b78581bebe
-	github.com/go-errors/errors v1.4.2
+	github.com/go-errors/errors v1.5.1
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/sys v0.8.0
 )
