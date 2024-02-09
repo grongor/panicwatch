@@ -148,7 +148,7 @@ func checkConfig(config *Config) error {
 	}
 
 	if config.PanicDetectorBufferSize == 0 {
-		config.PanicDetectorBufferSize = 1e5
+		config.PanicDetectorBufferSize = 2 * 1e7
 	}
 
 	return nil
