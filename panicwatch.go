@@ -173,6 +173,7 @@ func runMonitoringProcess(config Config) {
 			index := findLastPanicStartIndex(bufferBytes)
 			if index != -1 {
 				if parsed := parsePanic(bufferBytes[index:]); parsed != nil {
+					restoreIgnoredSigchld()
 					config.OnPanic(*parsed)
 				}
 			}
@@ -182,6 +183,7 @@ func runMonitoringProcess(config Config) {
 
 		if err != nil {
 			if config.OnWatcherError != nil {
+				restoreIgnoredSigchld()
 				config.OnWatcherError(err)
 			}
 
