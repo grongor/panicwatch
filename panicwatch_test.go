@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -186,7 +185,7 @@ func testStackTrace(assert *require.Assertions, resultAsErr *goerrors.Error, pan
 
 // Each test uses this test method to run a separate process in order to test the functionality.
 func helperProcess(command string) (*exec.Cmd, *bytes.Buffer, *bytes.Buffer, string) {
-	f, err := ioutil.TempFile("", "result")
+	f, err := os.CreateTemp("", "result")
 	if err != nil {
 		panic(err)
 	}
@@ -211,7 +210,7 @@ func getPanicRegex() string {
 }
 
 func readResult(resultFile string) panicwatch.Panic {
-	resultBytes, err := ioutil.ReadFile(resultFile)
+	resultBytes, err := os.ReadFile(resultFile)
 	if err != nil {
 		panic(err)
 	}
