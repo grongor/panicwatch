@@ -23,11 +23,13 @@ jobs:
         strategy:
             matrix:
                 os: [ macos-latest, ubuntu-latest, windows-latest ]
+                go: [ '~1.19.0', '^1.23' ]
         steps:
             -   uses: actions/checkout@v4
             -   uses: actions/setup-go@v5
                 with:
-                    go-version: '^1.23'
+                    go-version: ${{ matrix.go }}
+                    check-latest: true
             -   name: Run tests
                 run: make test
 
@@ -37,27 +39,31 @@ jobs:
         strategy:
             matrix:
                 arch: [ armv6, armv7, aarch64 ]
+#                go: [ '1.19.13', 'latest' ]
+                go: [ '1.19.13', '1.22.6' ] # https://github.com/golang/go/issues/68976
         steps:
             -   uses: actions/checkout@v4
             -   uses: uraimo/run-on-arch-action@v2
-                id: runcmd
                 with:
                     arch: ${{ matrix.arch }}
-                    distro: bullseye
-                    install: |
-                        apt update
-                        apt install -y build-essential wget
-
-                        if [[ ${{ matrix.arch }} == arm* ]]; then
-                            pkg=go1.22.0.linux-armv6l.tar.gz
+                    distro: bookworm
+                    install: apt update && apt install -y build-essential wget
+                    run: |
+                        if [ ${{ matrix.go }} = latest ]; then
+                            go=$(wget -O- 'https://go.dev/dl/?mode=json' | grep -m1 version | awk -F'"' '{ print $4 }')
                         else
-                            pkg=go1.22.0.linux-arm64.tar.gz
+                            go=go${{ matrix.go }}
                         fi
 
-                        wget https://golang.org/dl/$pkg
-                        tar -C /usr/local -xzf $pkg
-                    run: |
+                        case ${{ matrix.arch }} in
+                            arm*) filename=${go}.linux-armv6l.tar.gz ;;
+                            *) filename=${go}.linux-arm64.tar.gz ;;
+                        esac
+
+                        wget https://golang.org/dl/$filename
+                        tar -C /usr/local -xzf $filename
                         export PATH=$PATH:/usr/local/go/bin
+
                         go build cmd/test/test.go
                         go test --timeout 5m --count 1 ./...
 
