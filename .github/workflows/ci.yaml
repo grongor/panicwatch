@@ -34,19 +34,29 @@ jobs:
                 run: make test
 
     test-arm:
-        name: Test ARM
+        name: Test QEMU
         runs-on: ubuntu-latest
         strategy:
             matrix:
+                distro: [ bookworm ]
                 arch: [ armv6, armv7, aarch64 ]
 #                go: [ '1.19.13', 'latest' ]
                 go: [ '1.19.13', '1.22.6' ] # https://github.com/golang/go/issues/68976
+                include:
+                    -   distro: ubuntu22.04
+                        arch: riscv64
+                        go: '1.21.13'
+                    -   distro: ubuntu22.04
+                        arch: riscv64
+#                        go: 'latest'
+                        go: '1.22.6' # https://github.com/golang/go/issues/68976
+
         steps:
             -   uses: actions/checkout@v4
             -   uses: uraimo/run-on-arch-action@v2
                 with:
+                    distro: ${{ matrix.distro }}
                     arch: ${{ matrix.arch }}
-                    distro: bookworm
                     install: apt update && apt install -y build-essential wget
                     run: |
                         if [ ${{ matrix.go }} = latest ]; then
@@ -56,6 +66,7 @@ jobs:
                         fi
 
                         case ${{ matrix.arch }} in
+                            riscv64) filename=${go}.linux-riscv64.tar.gz ;;
                             arm*) filename=${go}.linux-armv6l.tar.gz ;;
                             *) filename=${go}.linux-arm64.tar.gz ;;
                         esac
