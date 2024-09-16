@@ -24,7 +24,7 @@ const panicRegexTemplate = `goroutine 1 \[runn(?:ing|able)\]:\r?\n` +
 	`main.main\(\)\r?\n` +
 	`\t%[1]s/cmd/test/test\.go:\d+ \+0x[a-z0-9]+\r?\n`
 
-func TestPanicwatch(t *testing.T) {
+func TestPanicwatch(t *testing.T) { //nolint:cyclop
 	builder := strings.Builder{}
 
 	for i := 0; i < 1500; i++ {
@@ -124,6 +124,19 @@ func TestPanicwatch(t *testing.T) {
 			assert.Equal(test.expectedStdout, stdout.String())
 
 			result := readResult(resultFile)
+
+			// @todo remove when https://github.com/golang/go/issues/69447 is resolved:
+			if test.expectedPanic == "concurrent map writes" && result.Message != test.expectedPanic {
+				switch result.Message {
+				case "fatal error: concurrent map writes",
+					"concurrent map writesfatal error: concurrent map writes",
+					"concurrent map writesfatal error: ",
+					"fatal error: concurrent map writesconcurrent map writes":
+					t.Skip("go runtime bug https://github.com/golang/go/issues/69447")
+				default:
+					assert.Equal("", result.Message)
+				}
+			}
 
 			if test.expectedPanicType == "" && test.expectedPanic != "" {
 				test.expectedPanicType = panicwatch.TypePanic
