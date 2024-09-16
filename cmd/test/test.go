@@ -60,13 +60,13 @@ func executeCommand(cmd string) { //nolint:cyclop // we must keep everything her
 		_, _ = fmt.Fprint(os.Stderr, "pani")
 		_ = os.Stderr.Sync()
 
-		time.Sleep(time.Millisecond * 500)
+		time.Sleep(time.Millisecond)
 		stderr("c: i'm split in three lol")
 		stderr("\ngoroutine 1 [running]:")
 
 		_ = os.Stderr.Sync()
 
-		time.Sleep(time.Millisecond * 500)
+		time.Sleep(time.Millisecond)
 
 		_, filename, _, _ := runtime.Caller(0)
 		projectDir := path.Dir(path.Dir(path.Dir(filename)))
@@ -77,7 +77,6 @@ func executeCommand(cmd string) { //nolint:cyclop // we must keep everything her
 		_ = os.Stderr.Sync()
 
 		stderr("main.main()")
-
 		stderr(fmt.Sprintf("\t%s/cmd/test/test.go:42 +0x12ab", projectDir))
 		os.Exit(2)
 	case "panic-with-garbage":
@@ -93,7 +92,7 @@ func executeCommand(cmd string) { //nolint:cyclop // we must keep everything her
 		stderr("panic: this is fake\n")
 
 		panic("and this is not")
-	case "fatal-error": // force a concurrent map error
+	case "fatal-error": // force a concurrent map writes error
 		m := make(map[int]int)
 
 		go func() {
