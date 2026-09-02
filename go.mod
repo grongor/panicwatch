@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/glycerine/rbuf v0.0.0-20190314090850-75b78581bebe
 	github.com/go-errors/errors v1.5.1
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.12.1
 	golang.org/x/sys v0.25.0
 )
 
@@ -16,6 +16,7 @@ require (
 	github.com/jtolds/gls v4.20.0+incompatible // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
