@@ -1,12 +1,12 @@
 module github.com/grongor/panicwatch
 
-go 1.19
+go 1.25.0
 
 require (
 	github.com/glycerine/rbuf v0.0.0-20190314090850-75b78581bebe
 	github.com/go-errors/errors v1.5.1
 	github.com/stretchr/testify v1.9.0
-	golang.org/x/sys v0.25.0
+	golang.org/x/sys v0.47.0
 )
 
 require (
