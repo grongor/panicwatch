@@ -4,7 +4,7 @@ panicwatch
 ![CI](https://github.com/grongor/panicwatch/workflows/CI/badge.svg)
 [![Go Reference](https://pkg.go.dev/badge/github.com/grongor/panicwatch.svg)](https://pkg.go.dev/github.com/grongor/panicwatch)
 
-Simple utility for catching panics in your Go applications.
+Simple utility for catching panics and fatal errors in your Go applications.
 
 When you start panicwatch, it creates a new process which watches your application. When the application exits,
 panicwatch parses the stderr output of your application and if it finds a panic, it will report it using configured
